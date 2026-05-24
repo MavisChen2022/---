@@ -1,0 +1,138 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  color: #e8e8f0;
+  background: #1a1a2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: #7eb8ff;
+}
+
+.app-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.app-header {
+  padding: 1rem 1rem 0.5rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.app-main {
+  flex: 1;
+  padding: 0 1rem 1rem;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+  border-top: 1px solid #2d2d44;
+  background: #16162a;
+}
+
+.app-nav a {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  text-decoration: none;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  color: #a0a0b8;
+}
+
+.app-nav a.router-link-active {
+  background: #2d2d44;
+  color: #fff;
+}
+
+.card {
+  background: #22223a;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  background: #16162a;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.avatar-static,
+.avatar-animated {
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.banner {
+  background: #2a3a5a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.error-text {
+  color: #ff8a8a;
+  font-size: 0.875rem;
+}
+
+.module-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.module-card {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: #16162a;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.module-card.active {
+  border-color: #7eb8ff;
+}
+
+.module-card img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+input[type="range"] {
+  width: 100%;
+}
