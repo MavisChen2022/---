@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://avatar-platform.local/contracts/module-manifest-v1.schema.json",
+  "title": "AvatarModuleManifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "author",
+    "description",
+    "preview",
+    "compatibility",
+    "states"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string" },
+    "author": { "type": "string" },
+    "description": { "type": "string" },
+    "preview": { "type": "string" },
+    "compatibility": {
+      "type": "object",
+      "required": ["minRuntimeVersion"],
+      "properties": {
+        "minRuntimeVersion": { "type": "string" }
+      }
+    },
+    "renderers": {
+      "type": "object",
+      "properties": {
+        "lottie": { "type": "string" }
+      }
+    },
+    "states": {
+      "type": "object",
+      "required": ["sleep", "normal", "busy", "panic"],
+      "additionalProperties": false,
+      "properties": {
+        "sleep": { "$ref": "#/$defs/stateAssets" },
+        "normal": { "$ref": "#/$defs/stateAssets" },
+        "busy": { "$ref": "#/$defs/stateAssets" },
+        "panic": { "$ref": "#/$defs/stateAssets" }
+      }
+    },
+    "transitions": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "object",
+          "required": ["duration", "easing"],
+          "properties": {
+            "duration": { "type": "number", "minimum": 0 },
+            "easing": { "type": "string" }
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "preferredFPS": { "type": "number" },
+        "backgroundBehavior": { "enum": ["pause"] },
+        "lowPowerFallback": { "enum": ["static"] }
+      }
+    }
+  },
+  "$defs": {
+    "stateAssets": {
+      "type": "object",
+      "required": ["image", "animation"],
+      "properties": {
+        "image": { "type": "string" },
+        "animation": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["type", "src", "loop"],
+              "properties": {
+                "type": { "enum": ["apng", "webp", "json"] },
+                "src": { "type": "string" },
+                "loop": { "type": "boolean" },
+                "fps": { "type": "number" },
+                "renderer": { "enum": ["lottie"] }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "type": { "const": "json" } } },
+                  "then": { "required": ["renderer"] }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

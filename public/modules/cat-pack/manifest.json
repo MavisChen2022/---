@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "cat-pack",
+  "name": "Cute Cat Pack",
+  "version": "1.0.0",
+  "author": "PWA Avatar Platform",
+  "description": "Default cat avatar module (placeholder assets; replace WebP/APNG/Lottie in production)",
+  "preview": "preview.webp",
+  "compatibility": {
+    "minRuntimeVersion": "1.0.0"
+  },
+  "renderers": {
+    "lottie": "renderers/lottie-renderer.mjs"
+  },
+  "states": {
+    "sleep": {
+      "image": "states/sleep.webp",
+      "animation": null
+    },
+    "normal": {
+      "image": "states/normal.webp",
+      "animation": null
+    },
+    "busy": {
+      "image": "states/busy.webp",
+      "animation": null
+    },
+    "panic": {
+      "image": "states/panic.webp",
+      "animation": {
+        "type": "json",
+        "src": "animations/panic.json",
+        "renderer": "lottie",
+        "loop": true
+      }
+    }
+  },
+  "transitions": {
+    "default": {
+      "duration": 300,
+      "easing": "ease-in-out"
+    }
+  },
+  "performance": {
+    "preferredFPS": 15,
+    "backgroundBehavior": "pause",
+    "lowPowerFallback": "static"
+  }
+}

@@ -1,0 +1,30 @@
+---
+alwaysApply: true
+---
+
+<!-- SPECKIT START -->
+## Active plan
+
+Read: `specs/001-gmail-standby-unread/plan.md`
+
+## Tech stack (001-gmail-standby-unread)
+
+- Vue 3 + Vite + TypeScript + PWA (vite-plugin-pwa)
+- Pinia, Vue Router, idb (IndexedDB)
+- Gmail API: INBOX `messagesUnread` only; OAuth PKCE
+- Sync: 60s foreground polling when visible + visibilitychange immediate refresh
+- Notifications: Notification API (no C# Web Push in MVP)
+- Modules: `public/modules/` → URL `/modules/`; manifest schema 1.0.0
+- Default module: `public/modules/cat-pack/` (module-bundled Lottie renderer)
+- Avatar core: `src/core/avatar`, `src/core/modules`, `src/core/render`
+
+## Key contracts
+
+- `specs/001-gmail-standby-unread/data-model.md`
+- `specs/001-gmail-standby-unread/contracts/`
+
+## Commands
+
+- `npm run dev` / `npm test` (after scaffold)
+- See `specs/001-gmail-standby-unread/quickstart.md`
+<!-- SPECKIT END -->
