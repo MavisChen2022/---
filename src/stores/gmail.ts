@@ -7,7 +7,7 @@ import {
 } from "@/services/api/auth-api";
 import { fetchInboxSync, GmailBackendError } from "@/services/api/gmail-api";
 import type { InboxMessageSummary, SyncStatus } from "@/services/gmail/types";
-import { getStoredMessages, replaceStoredMessages } from "@/db";
+import { replaceStoredMessages } from "@/db";
 import { clearAppBadge, updateAppBadge } from "@/services/notification/badge-service";
 import {
   captureUnreadSnapshot,
@@ -69,15 +69,22 @@ export const useGmailStore = defineStore("gmail", {
           this.syncError = e instanceof Error ? e.message : "Backend unavailable";
         }
 
-        if (!this.messages.length) {
-          const cached = await getStoredMessages();
-          this.messages = cached;
-        }
+        this.messages = [];
+        await replaceStoredMessages([]);
 
         const avatar = useAvatarStore();
         const modules = useModulesStore();
         if (!avatar.hydrated) await avatar.hydrateFromDb();
         if (!modules.loaded) await modules.load();
+
+        if (this.configured && !this.connected) {
+          this.lastSyncedAt = null;
+          avatar.setActualUnread(0);
+          await avatar.persistCounterState({
+            status: this.syncStatus,
+            syncedAt: new Date().toISOString(),
+          });
+        }
 
         const hydrated = captureUnreadSnapshot(
           avatar.actualUnread,
@@ -139,10 +146,10 @@ export const useGmailStore = defineStore("gmail", {
         this.connected = true;
         this.syncStatus = "ok";
         this.lastSyncedAt = result.syncedAt;
-        this.messages = result.messages;
+        this.messages = [];
 
         avatar.setActualUnread(result.unreadCount);
-        await replaceStoredMessages(result.messages);
+        await replaceStoredMessages([]);
         await avatar.persistCounterState({
           status: "ok",
           syncedAt: result.syncedAt,
@@ -171,6 +178,8 @@ export const useGmailStore = defineStore("gmail", {
           this.syncError = e.message;
           if (e.syncStatus === "auth_error") {
             this.connected = false;
+            this.lastSyncedAt = null;
+            avatar.setActualUnread(0);
           }
           await avatar.persistCounterState({
             status: e.syncStatus,
@@ -190,7 +199,8 @@ export const useGmailStore = defineStore("gmail", {
       }
     },
     async loadCachedMessages() {
-      this.messages = await getStoredMessages();
+      this.messages = [];
+      await replaceStoredMessages([]);
     },
   },
 });

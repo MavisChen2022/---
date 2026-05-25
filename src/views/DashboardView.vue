@@ -127,7 +127,7 @@ async function simulateWake() {
         編輯門檻設定
       </button>
       <button type="button" class="linkish" @click="router.push('/messages')">
-        查看未讀郵件
+        查看 Gmail 隱私設定
       </button>
     </div>
 

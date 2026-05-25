@@ -143,8 +143,7 @@ app.MapGet("/api/gmail/inbox", async (
     try
     {
         var unreadCount = await FetchInboxUnreadCountAsync(client, accessToken);
-        var messages = await FetchUnreadMessageSummariesAsync(client, accessToken, 20);
-        return Results.Ok(new InboxSyncResponse(unreadCount, messages, DateTimeOffset.UtcNow, "ok"));
+        return Results.Ok(new InboxSyncResponse(unreadCount, Array.Empty<InboxMessageSummary>(), DateTimeOffset.UtcNow, "ok"));
     }
     catch (GmailHttpException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
     {
@@ -158,22 +157,6 @@ app.MapGet("/api/gmail/inbox", async (
             new InboxSyncResponse(0, Array.Empty<InboxMessageSummary>(), DateTimeOffset.UtcNow, "offline"),
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
-});
-
-app.MapGet("/api/gmail/messages", async (
-    HttpContext ctx,
-    IConfiguration config,
-    IHttpClientFactory httpClientFactory) =>
-{
-    var client = httpClientFactory.CreateClient();
-    var accessToken = await GetValidAccessTokenAsync(ctx.Session, config, client);
-    if (accessToken is null)
-    {
-        return Results.Json(Array.Empty<InboxMessageSummary>(), statusCode: StatusCodes.Status401Unauthorized);
-    }
-
-    var messages = await FetchUnreadMessageSummariesAsync(client, accessToken, 20);
-    return Results.Ok(messages);
 });
 
 app.MapGet("/api/modules", (IConfiguration config, IWebHostEnvironment env) =>
@@ -313,68 +296,11 @@ static async Task<int> FetchInboxUnreadCountAsync(HttpClient client, string acce
     return Math.Max(0, label?.MessagesUnread ?? 0);
 }
 
-static async Task<InboxMessageSummary[]> FetchUnreadMessageSummariesAsync(HttpClient client, string accessToken, int maxResults)
-{
-    var listUrl = "https://gmail.googleapis.com/gmail/v1/users/me/messages?" + BuildQuery(new Dictionary<string, string?>
-    {
-        ["labelIds"] = "INBOX",
-        ["q"] = "is:unread",
-        ["maxResults"] = maxResults.ToString()
-    });
-
-    using var listRequest = CreateGmailRequest(HttpMethod.Get, listUrl, accessToken);
-    using var listResponse = await client.SendAsync(listRequest);
-    if (!listResponse.IsSuccessStatusCode) throw new GmailHttpException(listResponse.StatusCode);
-
-    var list = await listResponse.Content.ReadFromJsonAsync<GmailMessageListResponse>(JsonOptions.Default);
-    var ids = list?.Messages?.Select(message => message.Id).Where(id => !string.IsNullOrWhiteSpace(id)).ToArray() ?? Array.Empty<string>();
-
-    var tasks = ids.Select(id => FetchMessageMetadataAsync(client, accessToken, id!));
-    var messages = await Task.WhenAll(tasks);
-    return messages
-        .Where(message => message is not null)
-        .Select(message => ToSummary(message!))
-        .OrderByDescending(message => message.InternalDate)
-        .ToArray();
-}
-
-static async Task<GmailMessageMetadata?> FetchMessageMetadataAsync(HttpClient client, string accessToken, string id)
-{
-    var url = $"https://gmail.googleapis.com/gmail/v1/users/me/messages/{WebUtility.UrlEncode(id)}?format=metadata&metadataHeaders=Subject&metadataHeaders=From";
-    using var request = CreateGmailRequest(HttpMethod.Get, url, accessToken);
-    using var response = await client.SendAsync(request);
-    if (!response.IsSuccessStatusCode) return null;
-    return await response.Content.ReadFromJsonAsync<GmailMessageMetadata>(JsonOptions.Default);
-}
-
 static HttpRequestMessage CreateGmailRequest(HttpMethod method, string url, string accessToken)
 {
     var request = new HttpRequestMessage(method, url);
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     return request;
-}
-
-static InboxMessageSummary ToSummary(GmailMessageMetadata message)
-{
-    var headers = message.Payload?.Headers ?? Array.Empty<GmailHeader>();
-    var subject = HeaderValue(headers, "Subject", "(無主旨)");
-    var from = HeaderValue(headers, "From", "未知寄件者");
-    var isUnread = message.LabelIds?.Contains("UNREAD") ?? true;
-    _ = long.TryParse(message.InternalDate, out var internalDate);
-
-    return new InboxMessageSummary(
-        message.Id,
-        message.ThreadId,
-        subject,
-        from,
-        message.Snippet ?? "",
-        internalDate,
-        isUnread);
-}
-
-static string HeaderValue(IEnumerable<GmailHeader> headers, string name, string fallback)
-{
-    return headers.FirstOrDefault(header => string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))?.Value ?? fallback;
 }
 
 static string ResolveModulesRoot(IConfiguration config, IWebHostEnvironment env)
@@ -481,7 +407,7 @@ sealed record GoogleOAuthOptions(string ClientId, string ClientSecret, string Re
 
 sealed record AuthStatusResponse(bool Connected, string? Email, string Status);
 sealed record InboxSyncResponse(int UnreadCount, InboxMessageSummary[] Messages, DateTimeOffset SyncedAt, string Status);
-sealed record InboxMessageSummary(string Id, string ThreadId, string Subject, string From, string Snippet, long InternalDate, bool IsUnread);
+sealed record InboxMessageSummary();
 sealed record ModuleResponse(string Id, JsonElement Manifest, string BaseUrl, bool Enabled, string ValidationStatus, string[] ValidationErrors);
 
 sealed record GoogleTokenResponse(
@@ -492,11 +418,6 @@ sealed record GoogleTokenResponse(
 
 sealed record GmailProfile(string EmailAddress);
 sealed record InboxLabelResponse(string Id, int MessagesUnread);
-sealed record GmailMessageListResponse(GmailMessageListItem[]? Messages);
-sealed record GmailMessageListItem(string Id, string ThreadId);
-sealed record GmailMessageMetadata(string Id, string ThreadId, string? Snippet, string? InternalDate, string[]? LabelIds, GmailPayload? Payload);
-sealed record GmailPayload(GmailHeader[]? Headers);
-sealed record GmailHeader(string Name, string Value);
 
 sealed class GmailHttpException : Exception
 {

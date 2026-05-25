@@ -156,7 +156,7 @@ tests/
 
 - C# backend OAuth code flow（`GoogleOAuth__ClientId` / `GoogleOAuth__ClientSecret`）
 - `/api/gmail/inbox`：backend `labels.get` INBOX → `messagesUnread`
-- 訊息列表（top 20 unread metadata）
+- Gmail 隱私說明頁；不讀取 unread message metadata
 - `sync-scheduler`：60s + `useVisibilitySync`
 
 ### Phase E — 通知 & 規則（P1）

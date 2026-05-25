@@ -39,7 +39,7 @@ Response:
 
 ## Backend Google calls
 
-### Unread count (primary)
+### Unread count only
 
 ```
 GET https://gmail.googleapis.com/gmail/v1/users/me/labels/INBOX
@@ -48,16 +48,7 @@ Authorization: Bearer {accessToken}
 
 Use response field: `messagesUnread` (integer)
 
-## Message list (summary, optional per sync)
-
-```
-GET https://gmail.googleapis.com/gmail/v1/users/me/messages
-  ?labelIds=INBOX
-  &q=is:unread
-  &maxResults=20
-```
-
-Then batch `messages.get` with `format=metadata` and `metadataHeaders=Subject,From`.
+The backend must not call Gmail message-list or message-detail APIs for MVP unread sync. Do not read unread message subjects, senders, snippets, metadata, or bodies.
 
 Access tokens and refresh tokens are backend-only. The frontend must never receive Google tokens.
 
@@ -80,5 +71,5 @@ Access tokens and refresh tokens are backend-only. The frontend must never recei
 ## Privacy
 
 - Do not persist full message bodies
-- Store only fields in `messages` entity (data-model.md)
+- Do not persist unread message metadata; only `messagesUnread` is used for Avatar state
 - Store Google token server-side only; frontend uses HttpOnly session cookie
