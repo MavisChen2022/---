@@ -26,6 +26,10 @@
 - Q: MVP 是否必須上 C# Web Push？ → A: **否**。MVP 採 **PWA 前景輪詢 60 秒**、`visibilitychange` 立即刷新、**Notification API 本機通知**；C# Web Push 列 Phase 2。
 - Q: Lottie 是否由 App 內建 lottie-web？ → A: **否**；**每個模組自帶 renderer**（`manifest.renderers`）。內建預設模組：**`public/modules/cat-pack/`**。
 
+### Session 2026-05-25
+
+- Q: 是否仍讓前端處理 Google OAuth secret / token？ → A: **否**。改為前後端分離：前端只負責畫面渲染與使用者互動；C# ASP.NET Core Minimal API 後端負責 OAuth `client_secret`、Google token、Gmail API、模組 API。
+
 ---
 
 ## Platform Architecture（融合心智圖）
@@ -58,10 +62,12 @@
 │   ├── installed_modules
 │   └── user_settings
 │
-├── 5️⃣ 後端（Minimal API）                         [Phase 2]
-│   ├── Web Push 訂閱與觸發（MVP 不做）
-│   ├── Webhook Receiver
-│   └── Stateless；模組 CDN／商城 API [未來]
+├── 5️⃣ 後端（C# Minimal API）                      [MVP + Future]
+│   ├── Google OAuth secret / token session [MVP]
+│   ├── Gmail INBOX sync API [MVP]
+│   ├── 模組清單與資源 API [MVP]
+│   ├── Web Push 訂閱與觸發 [未來]
+│   └── Webhook Receiver [未來]
 │
 ├── 6️⃣ 外部訊息來源                                [MVP: Gmail only]
 │   ├── Gmail [MVP]
@@ -316,16 +322,16 @@ Render Engine MUST 支援：
 
 ```mermaid
 flowchart TD
-  Gmail[Gmail INBOX 未讀] --> Poll[PWA: 輪詢 60s / visibilitychange]
-  Poll --> PWA[OAuth + Gmail API]
-  PWA --> IDB[(IndexedDB)]
+  Gmail[Gmail INBOX 未讀] --> Backend[C# API: OAuth + Gmail API]
+  Backend --> Poll[PWA: 輪詢 60s / visibilitychange]
+  Poll --> IDB[(IndexedDB)]
   IDB --> Engine[Avatar Runtime Engine]
   Engine --> Render[模組 Render + 模組 renderers]
   Render --> UI[Dashboard / 主畫面圖示]
   Engine --> Notify[Notification API 本機通知]
 ```
 
-- **主路徑（MVP）**：Gmail **INBOX** 未讀 → 前景每 **60s** 輪詢 + 頁面變 **visible** 立即刷新 → IndexedDB → 狀態引擎 → 模組渲染（含模組自帶 `renderers`）→ Dashboard／Badging。
+- **主路徑（MVP）**：PWA 呼叫 C# 後端 → 後端以 OAuth secret / token 呼叫 Gmail **INBOX** API → 前景每 **60s** 輪詢 + 頁面變 **visible** 立即刷新 → IndexedDB → 狀態引擎 → 模組渲染（含模組自帶 `renderers`）→ Dashboard／Badging。
 - **通知（MVP）**：未讀變更且已授權時，以 **Notification API** 發本機通知（非 C# Web Push）。
 - **Phase 2**：C# Minimal API + Web Push + Webhook（見 Roadmap）。
 

@@ -1,6 +1,6 @@
-# Contract: Phase 2 — C# Web Push API (placeholder)
+# Contract: Backend Push/Webhook Extensions
 
-**Status**: Not in MVP — documented for future implementation
+**Status**: Backend now exists in MVP for OAuth, Gmail sync, and module APIs. Web Push and external webhook ingestion remain future extensions.
 
 ## Endpoints (planned)
 
@@ -10,10 +10,20 @@
 | POST | `/api/push/notify` | Internal trigger (webhook pipeline) |
 | POST | `/api/webhooks/gmail` | Gmail Pub/Sub push receiver |
 
-## MVP replacement
+## MVP backend endpoints already implemented
 
-- 60s foreground polling
-- `visibilitychange` refresh
-- `Notification` API client-side
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/auth/login` | Start Google OAuth code flow |
+| GET | `/api/auth/callback` | Exchange code using backend `client_secret` |
+| GET | `/api/auth/status` | Return frontend login state |
+| POST | `/api/auth/logout` | Clear session |
+| GET | `/api/gmail/inbox` | Return INBOX unread and top unread summaries |
+| GET | `/api/modules` | Return available module manifests |
+| GET | `/api/modules/{id}/assets/{path}` | Serve module assets |
 
-No implementation required until Phase 2 roadmap item is scheduled.
+## Still future work
+
+- Server-triggered Web Push
+- Gmail Pub/Sub webhook receiver
+- Persistent encrypted token database

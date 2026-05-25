@@ -1,15 +1,12 @@
 import { defineStore } from "pinia";
 import {
-  clearOAuthParamsFromUrl,
-  disconnectOAuth,
-  isOAuthConfigured,
-  parseOAuthCallback,
-  saveOAuthTokenFromCallback,
-  startOAuthLogin,
-} from "@/services/gmail/oauth-pkce";
-import { fetchProfileEmail, syncInboxUnread } from "@/services/gmail/inbox-sync";
-import { getTokens, isTokenValid, clearTokens } from "@/services/gmail/token-storage";
-import { GmailApiError, type InboxMessageSummary, type SyncStatus } from "@/services/gmail/types";
+  consumeOAuthErrorFromUrl,
+  fetchAuthStatus,
+  logoutBackendSession,
+  startBackendOAuthLogin,
+} from "@/services/api/auth-api";
+import { fetchInboxSync, GmailBackendError } from "@/services/api/gmail-api";
+import type { InboxMessageSummary, SyncStatus } from "@/services/gmail/types";
 import { getStoredMessages, replaceStoredMessages } from "@/db";
 import { clearAppBadge, updateAppBadge } from "@/services/notification/badge-service";
 import {
@@ -24,7 +21,7 @@ import { useSettingsStore } from "./settings";
 
 export const useGmailStore = defineStore("gmail", {
   state: () => ({
-    configured: isOAuthConfigured(),
+    configured: true,
     connected: false,
     email: null as string | null,
     syncing: false,
@@ -34,10 +31,11 @@ export const useGmailStore = defineStore("gmail", {
     syncError: null as string | null,
     oauthError: null as string | null,
     bootstrapped: false,
+    bootstrapping: false,
   }),
   getters: {
     statusLabel(state): string {
-      if (!state.configured) return "未設定 OAuth";
+      if (!state.configured) return "後端未連線";
       if (!state.connected) return "未連線";
       if (state.syncing) return "同步中…";
       if (state.syncStatus === "auth_error") return "授權失效";
@@ -47,88 +45,80 @@ export const useGmailStore = defineStore("gmail", {
   },
   actions: {
     async bootstrap() {
-      this.configured = isOAuthConfigured();
+      if (this.bootstrapped || this.bootstrapping) return;
+      this.bootstrapping = true;
+      this.configured = true;
       const settings = useSettingsStore();
-      if (!settings.loaded) await settings.load();
+      try {
+        if (!settings.loaded) await settings.load();
 
-      this.email = settings.gmailEmail ?? null;
-      this.connected = isTokenValid();
+        const oauthError = consumeOAuthErrorFromUrl();
+        if (oauthError) this.oauthError = oauthError;
 
-      const { accessToken, expiresIn, error } = parseOAuthCallback(window.location.search);
-      if (error) {
-        this.oauthError = error;
-        clearOAuthParamsFromUrl();
-      } else if (accessToken) {
         try {
-          saveOAuthTokenFromCallback(accessToken, expiresIn);
-          clearOAuthParamsFromUrl();
-          this.connected = true;
-          const tokens = getTokens();
-          if (tokens) {
-            const email = await fetchProfileEmail(tokens.accessToken);
-            this.email = email;
-            await settings.setGmailEmail(email);
-          }
-          await this.syncInbox();
+          const auth = await fetchAuthStatus();
+          this.configured = true;
+          this.connected = auth.connected;
+          this.email = auth.email;
+          this.syncStatus = auth.status;
+          await settings.setGmailEmail(auth.email);
         } catch (e) {
-          this.oauthError = e instanceof Error ? e.message : String(e);
-          clearOAuthParamsFromUrl();
+          this.configured = false;
+          this.connected = false;
+          this.syncStatus = "offline";
+          this.syncError = e instanceof Error ? e.message : "Backend unavailable";
         }
-      }
 
-      if (this.connected && !this.email) {
-        const tokens = getTokens();
-        if (tokens) {
-          try {
-            const email = await fetchProfileEmail(tokens.accessToken);
-            this.email = email;
-            await settings.setGmailEmail(email);
-          } catch {
-            /* profile optional on restore */
-          }
+        if (!this.messages.length) {
+          const cached = await getStoredMessages();
+          this.messages = cached;
         }
+
+        const avatar = useAvatarStore();
+        const modules = useModulesStore();
+        if (!avatar.hydrated) await avatar.hydrateFromDb();
+        if (!modules.loaded) await modules.load();
+
+        const hydrated = captureUnreadSnapshot(
+          avatar.actualUnread,
+          avatar.displayUnread,
+          avatar.resolvedStateComputed,
+        );
+        primeSnapshotFromHydration(hydrated);
+        if (settings.notificationEnabled) {
+          await updateAppBadge(hydrated.displayUnread);
+        } else {
+          await clearAppBadge();
+        }
+
+        this.bootstrapped = true;
+      } finally {
+        this.bootstrapping = false;
       }
-
-      if (!this.messages.length) {
-        const cached = await getStoredMessages();
-        this.messages = cached;
-      }
-
-      const avatar = useAvatarStore();
-      const modules = useModulesStore();
-      if (!avatar.hydrated) await avatar.hydrateFromDb();
-      if (!modules.loaded) await modules.load();
-
-      const hydrated = captureUnreadSnapshot(
-        avatar.actualUnread,
-        avatar.displayUnread,
-        avatar.resolvedStateComputed,
-      );
-      primeSnapshotFromHydration(hydrated);
-      await updateAppBadge(hydrated.displayUnread);
-
-      this.bootstrapped = true;
     },
     async connect() {
       this.oauthError = null;
-      await startOAuthLogin();
+      startBackendOAuthLogin();
     },
     async disconnect() {
-      disconnectOAuth();
+      await logoutBackendSession();
       this.connected = false;
       this.email = null;
       this.syncError = null;
       this.syncStatus = "ok";
+      this.lastSyncedAt = null;
+      this.messages = [];
       const settings = useSettingsStore();
       await settings.setGmailEmail(null);
+      await replaceStoredMessages([]);
       resetNotificationSnapshot();
       const avatar = useAvatarStore();
+      avatar.setActualUnread(0);
       await clearAppBadge();
       await avatar.persistCounterState();
     },
     async syncInbox(): Promise<boolean> {
-      if (!this.connected && !isTokenValid()) {
-        this.connected = false;
+      if (!this.connected) {
         return false;
       }
 
@@ -145,7 +135,7 @@ export const useGmailStore = defineStore("gmail", {
       );
 
       try {
-        const result = await syncInboxUnread();
+        const result = await fetchInboxSync();
         this.connected = true;
         this.syncStatus = "ok";
         this.lastSyncedAt = result.syncedAt;
@@ -176,11 +166,10 @@ export const useGmailStore = defineStore("gmail", {
 
         return true;
       } catch (e) {
-        if (e instanceof GmailApiError) {
+        if (e instanceof GmailBackendError) {
           this.syncStatus = e.syncStatus;
           this.syncError = e.message;
           if (e.syncStatus === "auth_error") {
-            clearTokens();
             this.connected = false;
           }
           await avatar.persistCounterState({

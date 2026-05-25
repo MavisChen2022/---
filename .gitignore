@@ -11,3 +11,6 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 *.tsbuildinfo
+backend/**/bin/
+backend/**/obj/
+backend/**/appsettings.Development.json

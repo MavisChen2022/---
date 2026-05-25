@@ -154,14 +154,14 @@ assets = manifest.states[state]
 
 ---
 
-## Gmail 帳戶（memory + optional IDB extension）
+## Gmail 帳戶（backend session）
 
-Stored in `sessionStorage` / Pinia only for tokens (not IndexedDB long-term):
+Google tokens are stored backend-side only. The frontend stores no Google access token or refresh token.
 
 | Field | Storage |
 |-------|---------|
-| `accessToken` | sessionStorage（短期） |
-| `refreshToken` | 若使用 offline access，加密存 IDB `user_settings` 子欄 `gmailAuth`（MVP 可 session-only） |
+| `accessToken` | C# backend session / token store |
+| `refreshToken` | C# backend session / future encrypted DB |
 | `email` | `user_settings.gmailEmail` |
 
 **Privacy**: 不存郵件正文；僅 snippet；符合 Constitution V。

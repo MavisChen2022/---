@@ -6,13 +6,13 @@
 
 ## Summary
 
-建置 **Vue 3 PWA**，以 **Gmail INBOX 未讀數** 驅動 **Avatar 四狀態**（sleep／normal／busy／panic），透過 **可熱插拔模組**（`public/modules/`，manifest `1.0.0`）渲染靜態 WebP／APNG／Lottie（模組自帶 renderer）。MVP 採 **60 秒前景輪詢**、**visibilitychange 立即同步**、**Notification API 本機通知**；**不含 C# Web Push**。內建 **`cat-pack`** 為預設模組。
+建置 **Vue 3 PWA + C# ASP.NET Core Minimal API**。前端只負責畫面渲染與使用者互動；後端負責 Google OAuth `client_secret`、Gmail API、模組清單與模組資源服務。以 **Gmail INBOX 未讀數** 驅動 **Avatar 四狀態**（sleep／normal／busy／panic），透過 **可熱插拔模組**（`public/modules/`，manifest `1.0.0`）渲染靜態 WebP／APNG／Lottie（模組自帶 renderer）。MVP 採 **60 秒前景輪詢**、**visibilitychange 立即同步**、**Notification API 本機通知**；Web Push / Webhook 仍列後續擴充。
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x · Vue 3.5+ · Node 20 LTS
+**Language/Version**: TypeScript 5.x · Vue 3.5+ · Node 20 LTS · C# / .NET 7+
 
-**Primary Dependencies**: Vite 6 · vue-router · pinia · vite-plugin-pwa · idb · @vueuse/core（visibility）· Ajv（manifest 驗證，可選）
+**Primary Dependencies**: Vite 6 · vue-router · pinia · vite-plugin-pwa · idb · ASP.NET Core Minimal API
 
 **Storage**: IndexedDB `avatar-platform` v1（`messages`, `unread_counter`, `installed_modules`, `user_settings`）
 
@@ -20,13 +20,13 @@
 
 **Target Platform**: PWA on **iOS Safari**、**Android Chrome**（installed to home screen）
 
-**Project Type**: Single-page web application（frontend-only MVP）
+**Project Type**: 前後端分離（Vue SPA frontend + C# Minimal API backend）
 
 **Performance Goals**: 狀態切換 UI &lt; 100ms（靜態）；動畫 15 FPS cap per module `performance.preferredFPS`；Gmail label API &lt; 2s p95 on 4G
 
-**Constraints**: HTTPS required（Gmail OAuth）；前景 60s 輪詢；模組 renderer 動態 import；無全域 lottie-web；僅 INBOX 未讀
+**Constraints**: Google OAuth secret 僅能存在後端；前景 60s 輪詢；模組 renderer 動態 import；無全域 lottie-web；僅 INBOX 未讀
 
-**Scale/Scope**: 單使用者單 Gmail 帳戶 · 4 畫面（Dashboard、Modules、Messages、Settings）· 1 內建模組 · Phase 2 才加後端
+**Scale/Scope**: 單使用者單 Gmail 帳戶 · 4 畫面（Dashboard、Modules、Messages、Settings）· 1 內建模組 · 後端先採 session / memory token store
 
 ## Constitution Check
 
@@ -125,10 +125,10 @@ tests/
 └── fixtures/
     └── manifests/
 
-.env.example                 # VITE_GOOGLE_CLIENT_ID
+.env.example                 # VITE_API_BASE_URL
 ```
 
-**Structure Decision**: 單一 **frontend** 專案（Vue + Vite）；**無 `backend/`** 於 MVP。Avatar 與模組為 `core/`；Gmail／通知為 `services/`。既有 `public/modules/cat-pack/` 保留為預設模組。
+**Structure Decision**: 前後端分離。前端為 Vue + Vite；後端為 `backend/AvatarMail.Api/` C# Minimal API。前端保留 Avatar Runtime 與 UI；後端負責 OAuth secret、Gmail API、模組 API。既有 `public/modules/cat-pack/` 保留為預設模組。
 
 ## Implementation Phases（高層）
 
@@ -152,10 +152,10 @@ tests/
 - Settings：`StateThresholdEditor` + 即時預覽
 - Dashboard：`AvatarCanvas` 綁定 store
 
-### Phase D — Gmail（P1）
+### Phase D — Gmail + Backend OAuth（P1）
 
-- OAuth PKCE（`VITE_GOOGLE_CLIENT_ID`）
-- `inbox-sync`：`labels.get` INBOX → `messagesUnread`
+- C# backend OAuth code flow（`GoogleOAuth__ClientId` / `GoogleOAuth__ClientSecret`）
+- `/api/gmail/inbox`：backend `labels.get` INBOX → `messagesUnread`
 - 訊息列表（top 20 unread metadata）
 - `sync-scheduler`：60s + `useVisibilitySync`
 
@@ -178,10 +178,10 @@ tests/
 | Unread source | INBOX `messagesUnread` | [research.md](./research.md) R3 |
 | Sync | 60s visible + visibility refresh | R4 |
 | Notifications | Notification API only | R5 |
-| Modules path | `public/modules/` → `/modules/*` | R7 |
+| Modules path | Backend `/api/modules` with static fallback `/modules/*` | R7 |
 | Default module | `cat-pack` | spec FR-007d |
 | Lottie | Module `renderers.lottie` ESM | [contracts/module-renderer-interface.md](./contracts/module-renderer-interface.md) |
-| C# API | Phase 2 | [contracts/phase2-push-api.md](./contracts/phase2-push-api.md) |
+| C# API | MVP for OAuth/Gmail/modules; Web Push remains future | [contracts/phase2-push-api.md](./contracts/phase2-push-api.md) |
 
 ## Complexity Tracking
 
