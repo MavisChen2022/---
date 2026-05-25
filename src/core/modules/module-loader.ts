@@ -1,4 +1,5 @@
 import type { InstalledModule } from "@/core/avatar/types";
+import { apiFetch } from "@/services/api/config";
 import { validateManifest } from "./manifest-validator";
 
 const MODULES_INDEX = "/modules/index.json";
@@ -9,6 +10,15 @@ export async function fetchModuleIndex(): Promise<string[]> {
   const ids = (await res.json()) as string[];
   if (!Array.isArray(ids)) throw new Error("modules index must be a string array");
   return ids;
+}
+
+export async function loadModulesFromApi(): Promise<InstalledModule[]> {
+  const modules = await apiFetch<InstalledModule[]>("/api/modules");
+  return modules.map((mod) => ({
+    ...mod,
+    enabled: mod.validationStatus === "valid" && mod.enabled,
+    validationErrors: mod.validationErrors ?? [],
+  }));
 }
 
 export async function loadModule(moduleId: string): Promise<InstalledModule> {
@@ -91,10 +101,20 @@ async function verifyAssets(
 }
 
 export async function loadAllModules(): Promise<InstalledModule[]> {
+  try {
+    const modules = await loadModulesFromApi();
+    if (modules.length > 0) return modules;
+  } catch {
+    /* Fallback to static public/modules when the backend is not running. */
+  }
+
   const ids = await fetchModuleIndex();
   return Promise.all(ids.map((id) => loadModule(id)));
 }
 
 export function resolveModuleAssetUrl(baseUrl: string, relativePath: string): string {
-  return new URL(relativePath, window.location.origin + baseUrl).href;
+  const base = baseUrl.startsWith("http")
+    ? baseUrl
+    : new URL(baseUrl, window.location.origin).href;
+  return new URL(relativePath, base).href;
 }

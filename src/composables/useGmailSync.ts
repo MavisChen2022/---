@@ -3,7 +3,6 @@ import { useGmailStore } from "@/stores/gmail";
 import { useAvatarStore } from "@/stores/avatar";
 import { useModulesStore } from "@/stores/modules";
 import { useSettingsStore } from "@/stores/settings";
-import { isTokenValid } from "@/services/gmail/token-storage";
 import {
   captureUnreadSnapshot,
   handleAfterSync,
@@ -44,14 +43,14 @@ export function useGmailSync() {
   }
 
   async function onVisible() {
-    if (!isTokenValid()) return;
+    if (!gmail.connected) return;
     await applyWakeRuleIfNeeded();
     await gmail.syncInbox();
   }
 
   function startInterval() {
     stopInterval();
-    if (!isTokenValid()) return;
+    if (!gmail.connected) return;
     if (document.visibilityState !== "visible") return;
     intervalId = setInterval(() => {
       void gmail.syncInbox();
@@ -78,7 +77,7 @@ export function useGmailSync() {
     if (started) return;
     started = true;
     document.addEventListener("visibilitychange", onVisibilityChange);
-    if (isTokenValid()) {
+    if (gmail.connected) {
       startInterval();
       if (document.visibilityState === "visible") {
         void onVisible();

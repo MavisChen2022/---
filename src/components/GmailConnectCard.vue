@@ -18,7 +18,7 @@ async function onConnect() {
     <p class="status">{{ gmail.statusLabel }}</p>
 
     <p v-if="!gmail.configured" class="warn">
-      請在 <code>.env</code> 設定 <code>VITE_GOOGLE_CLIENT_ID</code>（見 quickstart.md）。
+      請確認後端 API 已啟動，且前端 <code>.env</code> 設定 <code>VITE_API_BASE_URL</code>。
     </p>
 
     <p v-if="gmail.email" class="email">{{ gmail.email }}</p>

@@ -7,19 +7,33 @@
 
 - Node.js 20+
 - npm 10+
+- .NET SDK 7+
 - Google Cloud 專案（OAuth 2.0 Web client）
-- HTTPS 本機開發（Gmail OAuth 需要）— 使用 `vite --host` + mkcert 或 Cloudflare tunnel
+- 本機開發：前端 `http://localhost:5173`，後端 `http://localhost:5080`
 
 ## Google OAuth setup
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Enable **Gmail API**
 2. Credentials → OAuth 2.0 Client ID → **Web application**
-3. Authorized JavaScript origins: `https://localhost:5173`（依你 dev 埠號）
-4. Authorized redirect URIs: 同上（PKCE  implicit / code flow 依實作）
-5. Copy Client ID → `.env`:
+3. Authorized JavaScript origins: `http://localhost:5173`
+4. Authorized redirect URIs: `http://localhost:5080/api/auth/callback`
+5. Copy Client ID / Client Secret → 後端設定（不要放前端）：
+
+```json
+// backend/AvatarMail.Api/appsettings.Development.json
+{
+  "GoogleOAuth": {
+    "ClientId": "your-client-id.apps.googleusercontent.com",
+    "ClientSecret": "your-client-secret",
+    "RedirectUri": "http://localhost:5080/api/auth/callback"
+  }
+}
+```
+
+前端 `.env` 只需：
 
 ```env
-VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+VITE_API_BASE_URL=http://localhost:5080
 ```
 
 ## Bootstrap app（實作階段執行）
@@ -34,6 +48,13 @@ npm install vue-router pinia idb @vueuse/core
 npm install -D vite-plugin-pwa vitest @vue/test-utils jsdom eslint prettier
 ```
 
+## Run backend
+
+```bash
+cd backend/AvatarMail.Api
+dotnet run
+```
+
 ## 內建模組
 
 已存在，無需建立：
@@ -43,6 +64,7 @@ public/modules/cat-pack/
 ```
 
 驗證：瀏覽器開啟 `https://localhost:5173/modules/cat-pack/manifest.json`
+或後端 API：`http://localhost:5080/api/modules`
 
 ## Dev commands（實作後）
 
@@ -51,6 +73,9 @@ npm run dev          # Vite dev server
 npm run build        # Production build
 npm run test         # Vitest unit tests
 npm run preview      # Preview production build
+
+cd backend/AvatarMail.Api
+dotnet build         # Backend build
 ```
 
 ## Manual test checklist
