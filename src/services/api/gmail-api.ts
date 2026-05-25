@@ -1,4 +1,4 @@
-import type { InboxMessageSummary, InboxSyncResult } from "@/services/gmail/types";
+import type { InboxSyncResult } from "@/services/gmail/types";
 import { ApiError, apiFetch } from "./config";
 
 export async function fetchInboxSync(): Promise<InboxSyncResult> {
@@ -13,10 +13,6 @@ export async function fetchInboxSync(): Promise<InboxSyncResult> {
     }
     throw e;
   }
-}
-
-export async function fetchUnreadMessages(): Promise<InboxMessageSummary[]> {
-  return apiFetch<InboxMessageSummary[]>("/api/gmail/messages");
 }
 
 export class GmailBackendError extends Error {

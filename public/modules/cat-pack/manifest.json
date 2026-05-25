@@ -14,15 +14,15 @@
   },
   "states": {
     "sleep": {
-      "image": "states/sleep.webp",
+      "image": "states/sleep.svg",
       "animation": null
     },
     "normal": {
-      "image": "states/normal.webp",
+      "image": "states/normal.svg",
       "animation": null
     },
     "busy": {
-      "image": "states/busy.webp",
+      "image": "states/busy.svg",
       "animation": null
     },
     "panic": {

@@ -29,7 +29,7 @@
 
 ## R3 — Gmail 未讀（INBOX only）
 
-**Decision**: OAuth 2.0 Authorization Code + PKCE（Google Identity Services / `@react-oauth/google` 或自管 redirect）· Gmail API `users.messages.list` with `labelIds=INBOX` + `q=is:unread` · 以 `resultSizeEstimate` 或分頁計數取得未讀總數
+**Decision**: OAuth 2.0 Authorization Code flow handled by backend · Gmail API `users.labels.get(userId, 'INBOX')` · 使用 `messagesUnread` 取得未讀總數
 
 **Rationale**: Clarification 明確僅 INBOX；REST 可直接在 PWA 呼叫；無需 Phase 2 Webhook。
 
@@ -37,7 +37,7 @@
 - `users.labels.get` 的 `messagesUnread` on INBOX label：更省流量，**首選實作**
 - Pub/Sub + 後端：Phase 2
 
-**Implementation note**: 優先使用 `users.labels.get(userId, 'INBOX')` → `messagesUnread`；列表 API 僅用於訊息摘要（`messages` store）。
+**Implementation note**: 僅使用 `users.labels.get(userId, 'INBOX')` → `messagesUnread`；不呼叫 message list/detail API，不讀取主旨、寄件者、摘要、metadata 或正文。
 
 ---
 

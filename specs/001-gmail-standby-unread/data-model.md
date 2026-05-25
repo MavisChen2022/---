@@ -63,19 +63,11 @@ interface ThresholdRange {
 
 ---
 
-### Store: `messages`（key = Gmail `messageId`）
+### Store: `messages`（legacy, unused）
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Gmail message id |
-| `threadId` | `string` | |
-| `subject` | `string` | 摘要用 |
-| `from` | `string` | |
-| `snippet` | `string` | |
-| `internalDate` | `number` | |
-| `isUnread` | `boolean` | |
+MVP 只同步 Gmail INBOX `messagesUnread`。此 store 保留於 IndexedDB v1 schema 中以避免本機資料庫遷移，但新流程不寫入 Gmail message id、主旨、寄件者、摘要、metadata 或正文。
 
-**Retention**: 最多保留最近 **50** 筆未讀摘要；超出刪最舊（配額保護）。
+**Retention**: 新同步會清空既有摘要快取。
 
 ---
 

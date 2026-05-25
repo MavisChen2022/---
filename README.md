@@ -43,7 +43,7 @@ dotnet build
 
 - Phase A + B：PWA 骨架、IndexedDB、模組 Loader、cat-pack 渲染
 - Phase C：設定頁門檻編輯器、顯示規則、Dashboard 與 Pinia store 連動
-- Phase D：C# 後端 OAuth code flow、INBOX 未讀同步、訊息列表、60s 前景輪詢
+- Phase D：C# 後端 OAuth code flow、INBOX 未讀數同步、Gmail 隱私說明頁、60s 前景輪詢
 - Phase E：Notification API 本機通知、App Badge、規則一／二與同步整合
 - Phase F：測試打磨、雙平台驗收（見 plan.md）
 

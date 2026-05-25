@@ -32,7 +32,7 @@ onMounted(async () => {
     <nav class="app-nav">
       <RouterLink to="/">Dashboard</RouterLink>
       <RouterLink to="/modules">模組</RouterLink>
-      <RouterLink to="/messages">訊息</RouterLink>
+      <RouterLink to="/messages">隱私</RouterLink>
       <RouterLink to="/settings">設定</RouterLink>
     </nav>
   </div>

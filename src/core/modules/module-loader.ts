@@ -1,5 +1,5 @@
 import type { InstalledModule } from "@/core/avatar/types";
-import { apiFetch } from "@/services/api/config";
+import { apiFetch, getApiBaseUrl } from "@/services/api/config";
 import { validateManifest } from "./manifest-validator";
 
 const MODULES_INDEX = "/modules/index.json";
@@ -14,11 +14,20 @@ export async function fetchModuleIndex(): Promise<string[]> {
 
 export async function loadModulesFromApi(): Promise<InstalledModule[]> {
   const modules = await apiFetch<InstalledModule[]>("/api/modules");
+  const apiBase = getApiBaseUrl();
   return modules.map((mod) => ({
     ...mod,
+    baseUrl: absolutizeBaseUrl(mod.baseUrl, apiBase),
     enabled: mod.validationStatus === "valid" && mod.enabled,
     validationErrors: mod.validationErrors ?? [],
   }));
+}
+
+function absolutizeBaseUrl(baseUrl: string, apiBase: string): string {
+  if (!baseUrl) return baseUrl;
+  if (/^https?:\/\//i.test(baseUrl)) return baseUrl;
+  if (baseUrl.startsWith("/api/")) return `${apiBase}${baseUrl}`;
+  return baseUrl;
 }
 
 export async function loadModule(moduleId: string): Promise<InstalledModule> {
